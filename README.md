@@ -1,2 +1,2 @@
 # wifi_telnet
-Arduino code for an ESP8266 to serve as a remote serial device over wifi
+Arduino code for an ESP8266 to serve as a remote serial device over wifi. The software can be updated OTA.
