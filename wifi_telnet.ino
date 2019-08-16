@@ -1,7 +1,5 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include "WebOTA.h"
 
 const char* ssid = "<ssid>";
 const char* password = "<password>";
@@ -37,31 +35,12 @@ void setup()
     delay(3000);
     ESP.restart();
   }
-  ArduinoOTA.setHostname("telnet_esp8266");
-  ArduinoOTA.setPassword("admin");
- 
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "sketch";
-    } else { // U_SPIFFS
-      type = "filesystem";
-    }
-  });
-  ArduinoOTA.onEnd([]() {
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-  });
-  ArduinoOTA.begin();
-
   TelnetServer.begin();
   TelnetServer.setNoDelay(true);
 }
 
 void loop() {
-  ArduinoOTA.handle();
+  webota.handle();
   Telnet();  // Handle telnet connections
 }
 
