@@ -3,9 +3,10 @@
 
 const char* ssid = "<ssid>";
 const char* password = "<password>";
+const int   baudrate = 115200;
 
 //Static IP address configuration
-IPAddress staticIP(192, 168, 0, 156); //ESP static ip
+IPAddress staticIP(192, 168, 0, 157); //ESP static ip
 IPAddress gateway(192, 168, 0, 1);   //IP Address of your WiFi Router (Gateway)
 IPAddress subnet(255, 255, 255, 0);  //Subnet mask
 IPAddress dns(8, 8, 8, 8);  //DNS
@@ -14,6 +15,7 @@ const char* deviceName = "wifi_telnet";
 
 uint8_t i;
 bool ConnectionEstablished; // Flag for successfully handled connection
+char modus = 'c';
 
 WiFiServer TelnetServer(11023);
 WiFiClient TelnetClient;
@@ -44,15 +46,6 @@ void loop() {
   Telnet();  // Handle telnet connections
 }
 
-void TelnetMsg(String text)
-{
-  if (TelnetClient || TelnetClient.connected())
-  {
-    TelnetClient.println(text);
-  }
-  delay(10);  // to avoid strange characters left in buffer
-}
-
 void Telnet()
 { if (TelnetClient && !TelnetClient.connected())
   {
@@ -68,7 +61,9 @@ void Telnet()
     {
       TelnetClient = TelnetServer.available();
 
-      Serial.begin(9600);
+      Serial.begin(baudrate);
+
+      modus = 'c';
 
       TelnetClient.flush();  // clear input buffer, else you get strange characters
       TelnetClient.println("Welcome!");
@@ -79,6 +74,12 @@ void Telnet()
       TelnetClient.print("Free Heap RAM: ");
       TelnetClient.println(ESP.getFreeHeap());
 
+      TelnetClient.print("Baudrate: ");
+      TelnetClient.println(baudrate);
+
+      TelnetClient.print("Modus: ");
+      TelnetClient.println(modus);
+
       TelnetClient.println("ready");
 
       ConnectionEstablished = true;
@@ -87,7 +88,6 @@ void Telnet()
     if (ConnectionEstablished == false)
     {
       TelnetServer.available().stop();
-      // TelnetMsg("An other user cannot connect ... MAX_TELNET_CLIENTS limit is reached!");
     }
   }
 
@@ -98,16 +98,43 @@ void Telnet()
       //get data from the telnet client
       while (TelnetClient.available())
       {
-        Serial.write(TelnetClient.read());
-      }
-    }
-    if (Serial.available())
-    {
-      //get data from Serial
-      while (Serial.available())
-      {
-        TelnetClient.write(Serial.read());
+        char c = TelnetClient.read();
+        if (modus == 'c') {
+          if (c == 'a') {
+            Serial.write("\x02\x0e\x01\x04\x51\x03");
+            TelnetClient.write("auto\r\n");
+          }
+          if (c == 'h') {
+            Serial.write("\x02\x0e\x01\x02\x8c\x03");
+            TelnetClient.write("home\r\n");
+          }
+          if (c == 'm') {
+            Serial.write("\x02\x0e\x01\x03\xd2\x03");
+            TelnetClient.write("manuell\r\n");
+          }
+          if (c == 'z') {
+            Serial.write("\x02\x02\x04\x80\x0c\x28\x00\xa4\x03");
+            TelnetClient.write("zeit\r\n");
+          }
+          if (c == 'x') {
+            modus = 'x';
+            TelnetClient.write("Modus auf x gesetzt\r\n");
+          }
+        }
+        if (modus == 'x') {
+          Serial.write(c);
+        }
       }
     }
   }
+  if (Serial.available() > 0)
+  {
+    //get data from Serial
+    while (Serial.available() > 0)
+    {
+      char c = Serial.read();
+      TelnetClient.write(c);
+    }
+  }
+  delay(10);
 }
