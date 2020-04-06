@@ -12,8 +12,10 @@ IPAddress subnet(255, 255, 255, 0);  //Subnet mask
 IPAddress dns(8, 8, 8, 8);  //DNS
 
 const char* deviceName = "wifi_telnet";
+const char* sversion = "1.0.1";
 
 uint8_t i;
+uint32_t cnt_unconn=0;
 bool ConnectionEstablished; // Flag for successfully handled connection
 char modus = 'c';
 
@@ -44,12 +46,24 @@ void setup()
 void loop() {
   webota.handle();
   Telnet();  // Handle telnet connections
+  if (WiFi.status() != WL_CONNECTED) {
+    cnt_unconn++;
+  } else {
+    cnt_unconn = 0;
+  }
+  if (cnt_unconn > 100000) {
+    delay(3000);
+    ESP.restart();
+  }
 }
 
 void Telnet()
-{ if (TelnetClient && !TelnetClient.connected())
+{ if (!TelnetClient)     cnt_unconn++;
+  
+  if (TelnetClient && !TelnetClient.connected())
   {
     TelnetClient.stop();
+    cnt_unconn++;
   }
 
   // Check new client connections
@@ -67,6 +81,9 @@ void Telnet()
 
       TelnetClient.flush();  // clear input buffer, else you get strange characters
       TelnetClient.println("Welcome!");
+
+      TelnetClient.print("wifi_telnet version ");
+      TelnetClient.println(sversion);
 
       TelnetClient.print("Millis since start: ");
       TelnetClient.println(millis());
@@ -111,6 +128,12 @@ void Telnet()
           if (c == 'm') {
             Serial.write("\x02\x0e\x01\x03\xd2\x03");
             TelnetClient.write("manuell\r\n");
+          }
+          if (c == 'u') {
+            TelnetClient.print("Millis since start: ");
+            TelnetClient.println(millis());
+            TelnetClient.print("Modus: ");
+            TelnetClient.println(modus);
           }
           if (c == 'z') {
             Serial.write("\x02\x02\x04\x80\x0c\x28\x00\xa4\x03");
